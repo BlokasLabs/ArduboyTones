@@ -72,7 +72,11 @@ ArduboyTones::ArduboyTones(boolean (*outEn)())
 
 void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 {
+#ifndef MIDIBOY
   bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+#else
+  bitWrite(TIMSK1, OCIE1A, 0); // disable the output compare match interrupt
+#endif
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq;
@@ -84,7 +88,11 @@ void ArduboyTones::tone(uint16_t freq, uint16_t dur)
 void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2)
 {
+#ifndef MIDIBOY
   bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+#else
+  bitWrite(TIMSK1, OCIE1A, 0); // disable the output compare match interrupt
+#endif
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq1;
@@ -99,7 +107,11 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
                         uint16_t freq2, uint16_t dur2,
                         uint16_t freq3, uint16_t dur3)
 {
+#ifndef MIDIBOY
   bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+#else
+  bitWrite(TIMSK1, OCIE1A, 0); // disable the output compare match interrupt
+#endif
   inProgmem = false;
   tonesStart = tonesIndex = toneSequence; // set to start of sequence array
   toneSequence[0] = freq1;
@@ -114,7 +126,11 @@ void ArduboyTones::tone(uint16_t freq1, uint16_t dur1,
 
 void ArduboyTones::tones(const uint16_t *tones)
 {
+#ifndef MIDIBOY
   bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+#else
+  bitWrite(TIMSK1, OCIE1A, 0); // disable the output compare match interrupt
+#endif
   inProgmem = true;
   tonesStart = tonesIndex = (uint16_t *)tones; // set to start of sequence array
   nextTone(); // start playing
@@ -122,7 +138,11 @@ void ArduboyTones::tones(const uint16_t *tones)
 
 void ArduboyTones::tonesInRAM(uint16_t *tones)
 {
+#ifndef MIDIBOY
   bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
+#else
+  bitWrite(TIMSK1, OCIE1A, 0); // disable the output compare match interrupt
+#endif
   inProgmem = false;
   tonesStart = tonesIndex = tones; // set to start of sequence array
   nextTone(); // start playing
@@ -130,8 +150,13 @@ void ArduboyTones::tonesInRAM(uint16_t *tones)
 
 void ArduboyTones::noTone()
 {
+#ifndef MIDIBOY
   bitWrite(TIMSK3, OCIE3A, 0); // disable the output compare match interrupt
   TCCR3B = 0; // stop the counter
+#else
+  bitWrite(TIMSK1, OCIE1A, 0); // disable the output compare match interrupt
+  TCCR1B = 0; // stop the counter
+#endif
   bitClear(TONE_PIN_PORT, TONE_PIN); // set the pin low
 #ifdef TONES_VOLUME_CONTROL
   bitClear(TONE_PIN2_PORT, TONE_PIN2); // set pin 2 low
@@ -195,6 +220,7 @@ void ArduboyTones::nextTone()
   freq &= ~TONE_HIGH_VOLUME; // strip volume indicator from frequency
 
 #ifdef TONES_ADJUST_PRESCALER
+#ifndef MIDIBOY
   if (freq >= MIN_NO_PRESCALE_FREQ) {
     tccrxbValue = _BV(WGM32) | _BV(CS30); // CTC mode, no prescaling
     ocrValue = F_CPU / freq / 2 - 1;
@@ -202,6 +228,15 @@ void ArduboyTones::nextTone()
   }
   else {
     tccrxbValue = _BV(WGM32) | _BV(CS31); // CTC mode, prescaler /8
+#else
+  if (freq >= MIN_NO_PRESCALE_FREQ) {
+    tccrxbValue = _BV(WGM12) | _BV(CS10); // CTC mode, no prescaling
+    ocrValue = F_CPU / freq / 2 - 1;
+    toneSilent = false;
+  }
+  else {
+    tccrxbValue = _BV(WGM12) | _BV(CS11); // CTC mode, prescaler /8
+#endif
 #endif
     if (freq == 0) { // if tone is silent
       ocrValue = F_CPU / 8 / SILENT_FREQ / 2 - 1; // dummy tone for silence
@@ -247,6 +282,7 @@ void ArduboyTones::nextTone()
     toggleCount = -1; // indicate infinite duration
   }
 
+#ifndef MIDIBOY
   TCCR3A = 0;
 #ifdef TONES_ADJUST_PRESCALER
   TCCR3B = tccrxbValue;
@@ -256,6 +292,17 @@ void ArduboyTones::nextTone()
   OCR3A = ocrValue;
   durationToggleCount = toggleCount;
   bitWrite(TIMSK3, OCIE3A, 1); // enable the output compare match interrupt
+#else
+  TCCR1A = 0;
+#ifdef TONES_ADJUST_PRESCALER
+  TCCR1B = tccrxbValue;
+#else
+  TCCR1B = _BV(WGM12) | _BV(CS11); // CTC mode, prescaler /8
+#endif
+  OCR1A = ocrValue;
+  durationToggleCount = toggleCount;
+  bitWrite(TIMSK1, OCIE1A, 1); // enable the output compare match interrupt
+#endif
 }
 
 uint16_t ArduboyTones::getNext()
@@ -266,7 +313,11 @@ uint16_t ArduboyTones::getNext()
   return *tonesIndex++;
 }
 
+#ifndef MIDIBOY
 ISR(TIMER3_COMPA_vect)
+#else
+ISR(TIMER1_COMPA_vect)
+#endif
 {
   if (durationToggleCount != 0) {
     if (!toneSilent) {

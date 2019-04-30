@@ -82,7 +82,7 @@ THE SOFTWARE.
 // ************************************************************
 
 
-#ifndef AB_DEVKIT
+#if !defined(AB_DEVKIT) || defined(MIDIBOY)
   // ***** SPEAKER ON TWO PINS *****
   // Indicates that each of the speaker leads is attached to a pin, the way
   // the Arduboy is wired. Allows tones of a higher volume to be produced.
@@ -119,7 +119,18 @@ THE SOFTWARE.
 // the tone() function.
 #define MAX_TONES 3
 
-#ifndef AB_DEVKIT
+#define MIDIBOY
+
+#ifdef MIDIBOY
+  #define TONE_PIN_PORT digitalPinToPORT(PIN_SPK_A)
+  #define TONE_PIN_DDR digitalPinToDDR(PIN_SPK_A)
+  #define TONE_PIN digitalPinToBit(PIN_SPK_A)
+  #define TONE_PIN_MASK _BV(TONE_PIN)
+  #define TONE_PIN2_PORT digitalPinToPORT(PIN_SPK_B)
+  #define TONE_PIN2_DDR digitalPinToDDR(PIN_SPK_B)
+  #define TONE_PIN2 digitalPinToBit(PIN_SPK_B)
+  #define TONE_PIN2_MASK _BV(TONE_PIN2)
+#elif !defined(AB_DEVKIT)
   // Arduboy speaker pin 1 = Arduino pin 5 = ATmega32u4 PC6
   #define TONE_PIN_PORT PORTC
   #define TONE_PIN_DDR DDRC
