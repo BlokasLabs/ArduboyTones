@@ -119,8 +119,6 @@ THE SOFTWARE.
 // the tone() function.
 #define MAX_TONES 3
 
-#define MIDIBOY
-
 #ifdef MIDIBOY
   #define TONE_PIN_PORT digitalPinToPORT(PIN_SPK_A)
   #define TONE_PIN_DDR digitalPinToDDR(PIN_SPK_A)
